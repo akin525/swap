@@ -595,7 +595,7 @@ class NewAuthController extends Controller
     public function login(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'username' => 'required|string',
+            'email' => 'required|string',
             'password' => 'required|string',
             'device_name' => 'required|string'
         ]);
@@ -604,9 +604,8 @@ class NewAuthController extends Controller
             return response()->json(['success' => false, 'message' => 'Incomplete request', 'error' => $validator->errors()], 401);
         }
 
-        $user = User::where('username', $request->username)
-            ->orWhere('email', $request->username)
-            ->orWhere('phone_number', $request->username)
+        $user = User::where('email', $request->email)
+            ->orWhere('phone', $request->phone)
             ->first();
 
         if (!$user) {
