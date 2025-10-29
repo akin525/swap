@@ -395,7 +395,7 @@ class NewAuthController extends Controller
         'ref_code' => $userRefCode,
         'referral' => $request->referral_code,
 //            'marketing_consent' => $request->marketing_consent ?? false,
-        'status' => 'face_verification_pending'
+        'status' => 'active'
     ]);
 
         $wallets = $this->createDefaultWallets($user->id);
