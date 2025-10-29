@@ -9,6 +9,7 @@ use App\Models\Wallet;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Tymon\JWTAuth\Facades\JWTAuth;
@@ -604,7 +605,7 @@ class NewAuthController extends Controller
     public function login(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'email' => 'required|string', // Remove 'nullable' - required and nullable conflict
+            'email' => 'required|string',
             'password' => 'required|string',
             'device_name' => 'required|string'
         ]);
@@ -644,9 +645,24 @@ class NewAuthController extends Controller
             ], 403);
         }
 
+        // **FIX: Check if password is properly hashed**
+        try {
+            $passwordCheck = Hash::check($request->password, $user->password);
+        } catch (\RuntimeException $e) {
+            // Password is not bcrypt hashed - likely plain text or different algorithm
+            // For security, treat this as invalid credentials
+            Log::error('Invalid password hash for user: ' . $user->id);
+
+            return response()->json([
+                'success' => false,
+                'status' => 'invalid_credentials',
+                'message' => 'Invalid Login Credentials. Please contact support.'
+            ], 401);
+        }
+
         // Check password
-        if (!Hash::check($request->password, $user->password)) {
-            // Record failed attempt count (flac = failed login attempt count)
+        if (!$passwordCheck) {
+            // Record failed attempt count
             $user->flac += 1;
             $user->save();
 
@@ -678,7 +694,7 @@ class NewAuthController extends Controller
             'success' => true,
             'token' => $token,
             'token_type' => 'bearer',
-            'expires_in' => auth('api')->factory()->getTTL() * 60, // Token expiry in seconds
+            'expires_in' => auth('api')->factory()->getTTL() * 60,
             'data' => [
                 'user' => $user->makeHidden([
                     'password', 'two_factor_secret', 'two_factor_recovery_codes',
@@ -688,6 +704,7 @@ class NewAuthController extends Controller
             'siteBot' => $siteBot
         ], 200);
     }
+
     public function country()
     {
         $data=Country::all();
