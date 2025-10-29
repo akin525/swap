@@ -17,6 +17,7 @@ Route::group(['prefix' => 'swap/auth'], function () {
     Route::get('verify-email', [NewAuthController::class, 'verifyEmail']);
     Route::post('resend-email-verification', [NewAuthController::class, 'resendEmailVerification']);
     Route::post('create-password', [NewAuthController::class, 'createPassword']);
+    Route::post('user-info', [NewAuthController::class, 'addUserInfo']);
     Route::post('verify-bvn', [NewAuthController::class, 'verifyBvn']);
     Route::post('verify-bvn-code', [NewAuthController::class, 'verifyBvnCode']);
     Route::post('verify-face', [NewAuthController::class, 'verifyFace']);

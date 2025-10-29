@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\User;
 use App\Http\Controllers\Controller;
 use App\Models\Country;
 use App\Models\User;
+use App\Models\Wallet;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Hash;
@@ -377,7 +378,7 @@ class NewAuthController extends Controller
             'first_name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
             'referral_code' => 'nullable|string',
-            'marketing_consent' => 'boolean',
+//            'marketing_consent' => 'boolean',
         ]);
 
         if ($validator->fails()) {
@@ -386,21 +387,84 @@ class NewAuthController extends Controller
 
         $user = User::find($request->user_id);
 
-        $user->update([
-            'first_name' => $request->first_name,
-            'last_name' => $request->last_name,
-            'referral_code' => $request->referral_code,
-            'marketing_consent' => $request->marketing_consent ?? false,
-            'status' => 'face_verification_pending'
-        ]);
+        $userRefCode =$this->generateUniqueRefCode();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'User information added successfully',
-            'user_id' => $user->id,
-            'next_step' => 'verify_face'
-        ]);
+    $user->update([
+        'firstname' => $request->first_name,
+        'lastname' => $request->last_name,
+        'ref_code' => $userRefCode,
+        'referral' => $request->referral_code,
+//            'marketing_consent' => $request->marketing_consent ?? false,
+        'status' => 'face_verification_pending'
+    ]);
+
+        $wallets = $this->createDefaultWallets($user->id);
+
+    return response()->json([
+        'success' => true,
+        'message' => 'User information added successfully',
+        'user_id' => $user->id,
+        'ref_code' => $userRefCode,
+        'wallets' => $wallets,
+        'next_step' => 'verify_face'
+    ]);
+}
+
+    private function createDefaultWallets(int $userId): array
+    {
+
+        $currencies = [
+            ['code' => 'NGN', 'single' => '30000', 'cumulative' => '100000'],
+            ['code' => 'GHS', 'single' => '30000', 'cumulative' => '100000'],
+            ['code' => 'ZAR', 'single' => '30000', 'cumulative' => '100000'],
+            ['code' => 'USD', 'single' => '30000', 'cumulative' => '100000'],
+        ];
+
+        $result = [];
+        foreach ($currencies as $c) {
+            $wallet = Wallet::firstOrCreate(
+                [
+                    'user_id'  => $userId,
+                    'currency' => $c['code'],
+                ],
+                [
+                    'balance'                   => '0',        // varchar per your schema
+                    'cashback'                  => '0',        // varchar per your schema
+                    'transfer_single_limit'     => $c['single'],
+                    'transfer_cumulative_limit' => $c['cumulative'],
+                    'status'                    => 1,          // active
+                ]
+            );
+
+            $result[] = [
+                'id'        => $wallet->id,
+                'currency'  => $wallet->currency,
+                'balance'   => $wallet->balance,
+                'cashback'  => $wallet->cashback,
+                'limits'    => [
+                    'single'     => $wallet->transfer_single_limit,
+                    'cumulative' => $wallet->transfer_cumulative_limit,
+                ],
+                'status'    => $wallet->status,
+            ];
+        }
+
+        return $result;
     }
+
+    /**
+     * Generate a unique referral code (8-char alphanumeric).
+     */
+    private function generateUniqueRefCode(): string
+    {
+        do {
+            $refCode = strtoupper(substr(md5(uniqid(mt_rand(), true)), 0, 8));
+        } while (User::where('ref_code', $refCode)->exists());
+
+        return $refCode;
+    }
+
+
 
     /**
      * Verify face with facial recognition
