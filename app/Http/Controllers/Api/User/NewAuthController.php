@@ -378,7 +378,8 @@ class NewAuthController extends Controller
             'first_name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
             'referral_code' => 'nullable|string',
-//            'marketing_consent' => 'boolean',
+            'bvn' => 'required|string|size:11',
+
         ]);
 
         if ($validator->fails()) {
@@ -394,7 +395,7 @@ class NewAuthController extends Controller
         'lastname' => $request->last_name,
         'ref_code' => $userRefCode,
         'referral' => $request->referral_code,
-//            'marketing_consent' => $request->marketing_consent ?? false,
+            'bvn' => $request->bvn,
         'status' => 'active'
     ]);
 
@@ -554,7 +555,13 @@ class NewAuthController extends Controller
      */
     public function me()
     {
-        return response()->json(['success' => true, 'user' => auth()->user()]);
+        $user= auth('api')->user();
+        $wallet=Wallet::where('user_id',$user->id)->get();
+        return response()->json([
+            'success' => true,
+            'user' => $user,
+            'wallet' => $wallet,
+            ]);
     }
 
     /**
@@ -595,57 +602,82 @@ class NewAuthController extends Controller
     public function login(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'email' => 'required|string',
+            'email' => 'required|string', // Remove 'nullable' - required and nullable conflict
             'password' => 'required|string',
             'device_name' => 'required|string'
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['success' => false, 'message' => 'Incomplete request', 'error' => $validator->errors()], 401);
+            return response()->json([
+                'success' => false,
+                'message' => 'Incomplete request',
+                'error' => $validator->errors()
+            ], 401);
         }
 
+        // Find user by email or phone
         $user = User::where('email', $request->email)
-            ->orWhere('phone', $request->phone)
+            ->orWhere('phone', $request->email)
             ->first();
 
         if (!$user) {
-            return response()->json(['success' => false, 'message' => 'Invalid Login Credentials']);
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid Login Credentials'
+            ], 401);
         }
 
         if ($user->status != "active") {
-            return response()->json(['success' => false, 'message' => 'Inactive/Blocked Account']);
+            return response()->json([
+                'success' => false,
+                'message' => 'Inactive/Blocked Account'
+            ], 403);
         }
 
         if ($user->flac > 2) {
-            return response()->json(['success' => false, 'status' => 'login_locked', 'message' => 'Account Locked Temporarily']);
+            return response()->json([
+                'success' => false,
+                'status' => 'login_locked',
+                'message' => 'Account Locked Temporarily'
+            ], 403);
         }
 
-        if (!$user || !Hash::check($request->password, $user->password)) {
-            // record failed attempt count (flac = failed login attempt count)
+        // Check password
+        if (!Hash::check($request->password, $user->password)) {
+            // Record failed attempt count (flac = failed login attempt count)
             $user->flac += 1;
             $user->save();
+
             if ($user->flac > 2) {
-                return response()->json(['success' => false, 'status' => 'login_locked', 'message' => 'Account Locked Temporarily']);
+                return response()->json([
+                    'success' => false,
+                    'status' => 'login_locked',
+                    'message' => 'Account Locked Temporarily'
+                ], 403);
             } else {
-                return response()->json(['success' => false, 'status' => 'invalid_credentials', 'message' => 'Invalid Login Credentials']);
+                return response()->json([
+                    'success' => false,
+                    'status' => 'invalid_credentials',
+                    'message' => 'Invalid Login Credentials'
+                ], 401);
             }
         }
 
-        // delete user tokens
-        $user->tokens()->delete();
+        // Generate JWT token for the authenticated user
+        $token = JWTAuth::fromUser($user);
 
+        // Reset failed login attempts
         $user->flac = 0;
         $user->save();
-
-        $token = $user->createToken($request->device_name)->plainTextToken;
 
         $siteBot = env('TELEGRAM_BOT_NAME');
 
         return response()->json([
             'success' => true,
             'token' => $token,
+            'token_type' => 'bearer',
+            'expires_in' => auth('api')->factory()->getTTL() * 60, // Token expiry in seconds
             'data' => [
-                'token' => $token,
                 'user' => $user->makeHidden([
                     'password', 'two_factor_secret', 'two_factor_recovery_codes',
                     'email_verified_at', 'email_code', 'telegram_otp', 'flac'
@@ -653,9 +685,7 @@ class NewAuthController extends Controller
             ],
             'siteBot' => $siteBot
         ], 200);
-
     }
-
     public function country()
     {
         $data=Country::all();
