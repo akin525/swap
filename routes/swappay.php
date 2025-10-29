@@ -26,7 +26,7 @@ Route::group(['prefix' => 'swap/auth'], function () {
     Route::middleware(['jwt.auth'])->group(function () {
         Route::post('logout', [NewAuthController::class, 'logout']);
         Route::post('refresh', [NewAuthController::class, 'refresh']);
-        Route::get('me', [NewAuthController::class, 'dashboard']);
+        Route::get('dashboard', [NewAuthController::class, 'me']);
 
 
         Route::get('/wallet/dashboard', [WalletController::class, 'dashboard']);
