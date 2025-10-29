@@ -379,6 +379,7 @@ class NewAuthController extends Controller
             'last_name' => 'required|string|max:255',
             'referral_code' => 'nullable|string',
             'bvn' => 'required|string|size:11',
+            'dob' => 'required|date_format:d/m/Y',
 
         ]);
 
@@ -396,7 +397,8 @@ class NewAuthController extends Controller
         'ref_code' => $userRefCode,
         'referral' => $request->referral_code,
             'bvn' => $request->bvn,
-        'status' => 'active'
+        'status' => 'active',
+        'dob'=>$request->dob
     ]);
 
         $wallets = $this->createDefaultWallets($user->id);
