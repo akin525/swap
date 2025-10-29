@@ -400,14 +400,17 @@ class NewAuthController extends Controller
 
         $wallets = $this->createDefaultWallets($user->id);
 
-    return response()->json([
-        'success' => true,
-        'message' => 'User information added successfully',
-        'user_id' => $user->id,
-        'ref_code' => $userRefCode,
-        'wallets' => $wallets,
-        'next_step' => 'verify_face'
-    ]);
+        $token = JWTAuth::fromUser($user);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Registration completed successfully',
+            'user' => $user,
+            'wallet'=>$wallets,
+            'access_token' => $token,
+            'token_type' => 'bearer',
+            'expires_in' => auth()->factory()->getTTL() * 60
+        ]);
 }
 
     private function createDefaultWallets(int $userId): array
