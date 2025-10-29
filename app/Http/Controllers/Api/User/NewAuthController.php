@@ -403,14 +403,14 @@ class NewAuthController extends Controller
 
         $wallets = $this->createDefaultWallets($user->id);
 
-        $token = JWTAuth::fromUser($user);
+//        $token = JWTAuth::fromUser($user);
 
         return response()->json([
             'success' => true,
             'message' => 'Registration completed successfully',
             'user' => $user,
             'wallet'=>$wallets,
-            'access_token' => $token,
+//            'access_token' => $token,
             'token_type' => 'bearer',
             'expires_in' => auth()->factory()->getTTL() * 60
         ]);
