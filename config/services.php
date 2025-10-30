@@ -34,5 +34,12 @@ return [
     'telegram-bot-api' => [
         'token' => env('TELEGRAM_BOT_TOKEN', '8025575652:AAFYAUHAmI2gZh0OD4NGQzAithjkKLtsxjI')
     ],
+    'reloadly' => [
+        'baseurl' => env('RELOADLY_BASE_URL', 'https://giftcards-sandbox.reloadly.com'),
+        'auth_url' => env('RELOADLY_AUTH_URL', 'https://auth.reloadly.com/oauth/token'),
+        'client_id' => env('RELOADLY_CLIENT_ID'),
+        'client_secret' => env('RELOADLY_CLIENT_SECRET'),
+        'audience' => env('RELOADLY_AUDIENCE', 'https://giftcards-sandbox.reloadly.com'),
+    ],
 
 ];

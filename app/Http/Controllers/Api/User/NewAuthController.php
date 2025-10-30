@@ -617,11 +617,18 @@ class NewAuthController extends Controller
                 'error' => $validator->errors()
             ], 401);
         }
+// Normalize phone input
+        $identifier =$request->email;
+$cleanPhone = preg_replace('/[^0-9]/', '', $identifier);
 
-        // Find user by email or phone
-        $user = User::where('email', $request->email)
-            ->orWhere('phone', $request->email)
-            ->first();
+// Find user by email or phone (try multiple formats)
+$user = User::where('email', $identifier)
+    ->orWhere('phone', $identifier)
+    ->orWhere('phone', $cleanPhone)
+    ->orWhere('phone', '234' . ltrim($cleanPhone, '0'))
+    ->orWhere('phone', '+234' . ltrim($cleanPhone, '0'))
+    ->orWhere('phone', '0' . ltrim($cleanPhone, '0'))
+    ->first();
 
         if (!$user) {
             return response()->json([
