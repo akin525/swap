@@ -17,7 +17,7 @@ class TransactionController extends Controller
 
     public function getTransactions(Request $request)
     {
-        $user = Auth::user();
+        $user= auth('api')->user();
 
         $query = WalletTransaction::where('user_id', $user->id);
 
@@ -58,6 +58,25 @@ class TransactionController extends Controller
     {
         $user = Auth::user();
         $transaction = WalletTransaction::where('reference', $reference)
+            ->where('user_id', $user->id)
+            ->first();
+
+        if (!$transaction) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Transaction not found'
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $transaction
+        ]);
+    }
+    public function getTransactionById($id)
+    {
+        $user = Auth::user();
+        $transaction = WalletTransaction::where('id', $id)
             ->where('user_id', $user->id)
             ->first();
 

@@ -406,6 +406,9 @@ class NewAuthController extends Controller
 
 //        $token = JWTAuth::fromUser($user);
 
+        \App\Jobs\CreateWalletsJob::dispatch($user);
+
+
         return response()->json([
             'success' => true,
             'message' => 'Registration completed successfully',
@@ -628,6 +631,8 @@ $user = User::where('email', $identifier)
     ->orWhere('phone', '234' . ltrim($cleanPhone, '0'))
     ->orWhere('phone', '+234' . ltrim($cleanPhone, '0'))
     ->orWhere('phone', '0' . ltrim($cleanPhone, '0'))
+    ->orWhere('phone', '0' . ltrim($cleanPhone, '234'))
+    ->orWhere('phone', '0' . ltrim($cleanPhone, '+234'))
     ->first();
 
         if (!$user) {

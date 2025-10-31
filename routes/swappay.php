@@ -38,6 +38,7 @@ Route::group(['prefix' => 'swap/auth'], function () {
         // Transaction routes
         Route::get('/transactions', [TransactionController::class, 'getTransactions']);
         Route::get('/transaction/{reference}', [TransactionController::class, 'getTransaction']);
+        Route::get('/transaction-id/{id}', [TransactionController::class, 'getTransactionById']);
         Route::post('/transaction/deposit', [TransactionController::class, 'deposit']);
         Route::post('/transaction/transfer', [TransactionController::class, 'transfer']);
         Route::post('/transaction/convert', [TransactionController::class, 'convert']);
